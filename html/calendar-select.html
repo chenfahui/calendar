@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="UTF-8">
+<title>日历</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+</head>
+<body>
+
+    <input type="hidden" name="nowYear" id="nowYear" value="2018"><!-- 今天公历年 -->
+    <input type="hidden" name="nowMonth" id="nowMonth" value="5"><!-- 今天公历月 -->
+    <input type="hidden" name="nowDay" id="nowDay" value="23"><!-- 今天公历天 -->
+    <input type="hidden" name="solarYear" id="solarYear" value="1900"><!-- 默认公历年 -->
+    <input type="hidden" name="solarMonth" id="solarMonth" value="5"><!-- 默认公历月 -->
+    <input type="hidden" name="solarDay" id="solarDay" value="10"><!-- 默认公历天 -->
+
+    <input type="radio" name="type" id="isSolar" value="solar" checked onclick="changeInit()"><label for="isSolar">公历</label>
+    <input type="radio" name="type" id="isLunar" value="lunar" onclick="changeInit()"><label for="isLunar">农历</label>
+
+    <select name="year" id="year" onchange="changeYear()"></select>
+    <select name="month" id="month" onchange="changeMonth()"></select>
+    <select name="day" id="day" onchange="changeDay()"></select>
+    <br>
+    <br>
+    <div id="showSolar"></div>
+    <div id="showLunar"></div>
+
+    <script type="text/javascript" src="../js/calendar.js"></script>
+    <script type="text/javascript">
+        
+        var isLunar = false;/*是否为农历，默认不是农历*/
+        var nowYear = getObj('nowYear').value;/*今天公历年*/
+        var nowMonth = getObj('nowMonth').value;/*今天公历月*/
+        var nowDay = getObj('nowDay').value;/*今天公历天*/
+        var nowLunarDate = calendar.solar2lunarFormat({solarYear:nowYear, solarMonth:nowMonth, solarDay:nowDay});/*获取今天的农历数据*/
+        var solarYear = getObj('solarYear').value;/*默认公历年*/
+        var solarMonth = getObj('solarMonth').value;/*默认公历月*/
+        var solarDay = getObj('solarDay').value;/*默认公历天*/
+        var lunarDate = calendar.solar2lunarFormat({solarYear:solarYear, solarMonth:solarMonth, solarDay:solarDay});/*获取默认的农历数据*/
+        var lunarYear = lunarDate.lunarYear;/*默认农历年*/
+        var lunarMonth = lunarDate.lunarMonth;/*默认农历月，区分闰月*/
+        var lunarDay = lunarDate.lunarDay;/*默认农历天*/
+
+        /*初始化*/
+        changeInit();
+
+        /*选择公历农历*/
+        function changeInit(){
+            dataShow();
+            isLunar = getObj('isLunar').checked;
+            dataNow(isLunar);
+            if(isLunar){/*农历模式*/
+                dataYear();
+                dataMonth(lunarYear);
+                dataDay(lunarYear, lunarMonth);
+            }else{/*公历模式*/
+                dataYear();
+                dataMonth(solarYear);
+                dataDay(solarYear, solarMonth);
+            }
+        };
+        /*年选择*/
+        function changeYear(){
+            var year = getObj('year').value;
+            dataMonth(year);
+            changeMonth();
+        };
+        /*月选择*/
+        function changeMonth(){
+            var year = getObj('year').value;
+            var month = getObj('month').value;
+            dataDay(year, month);
+            changeDay();
+        };
+        /*天选择*/
+        function changeDay(){
+            if(isLunar){
+                lunarYear = getObj('year').value;
+                lunarMonth = getObj('month').value;
+                lunarDay = getObj('day').value;
+                var data = calendar.lunar2solarFormat({lunarYear:lunarYear,lunarMonth:lunarMonth,lunarDay:lunarDay});/*根据农历，换算公历*/
+                solarYear = data.solarYear;
+                solarMonth = data.solarMonth;
+                solarDay = data.solarDay;
+            }else{
+                solarYear = getObj('year').value;
+                solarMonth = getObj('month').value;
+                solarDay = getObj('day').value;
+                var data = calendar.solar2lunarFormat({solarYear:solarYear,solarMonth:solarMonth,solarDay:solarDay});/*根据公历，换算农历*/
+                lunarYear = data.lunarYear;
+                lunarMonth = data.lunarMonth;
+                lunarDay = data.lunarDay;
+            }
+            /*用户选择结果*/
+            dataShow();
+            /*用户选择结果end*/
+        };
+
+        /*根据所选农历公历，获取今天的日期*/
+        function dataNow(isLunar){
+            if(isLunar){
+                nowYear = nowLunarDate.lunarYear;/*今天农历年*/
+                nowMonth = nowLunarDate.lunarMonth;/*今天农历月*/
+                nowDay = nowLunarDate.lunarDay;/*今天农历天*/
+            }else{
+                nowYear = getObj('nowYear').value;/*今天公历年*/
+                nowMonth = getObj('nowMonth').value;/*今天公历月*/
+                nowDay = getObj('nowDay').value;/*今天公历天*/
+            }
+        };
+
+        /*获取年数据*/
+        function dataYear(){
+            var data = calendar.listYear({isLunar:isLunar, lunarYear:lunarYear, /*为农历1899年特殊处理*/ nowYear:nowYear });
+            var year = isLunar ? lunarYear : solarYear;
+            dataHtml('year',year,data);
+        };
+
+        /*根据年，获取月数据*/
+        function dataMonth(year){
+            var data = calendar.listMonth({isLunar:isLunar, year:year, nowYear:nowYear, nowMonth:nowMonth });
+            var month = isLunar ? lunarMonth : solarMonth;
+            dataHtml('month',month,data);
+        };
+
+        /*根据年月，获取天数据*/
+        function dataDay(year, month){
+            var data = calendar.listDay({isLunar:isLunar, year:year, month:month, nowYear:nowYear, nowMonth:nowMonth, nowDay:nowDay });
+            var day = isLunar ? lunarDay : solarDay;
+            dataHtml('day',day,data);
+        };
+
+        /*转成html*/
+        function dataHtml(obj,cur,data){
+            var html = '';
+            for(var i = 0; i < data.length; i++){
+                    html += '<option value="'+data[i].id+'" '+((cur == data[i].id) ? 'selected="selected"' : '')+'>'+data[i].value+'</option>';
+            }
+            getObj(obj).innerHTML = html;
+        };
+
+        /*获取对象*/
+        function getObj(obj){
+            obj = document.getElementById(obj);
+            return obj;
+        };
+
+        /*展示*/
+        function dataShow(){
+            console.log('公历：'+solarYear+'年'+solarMonth+'月'+solarDay+'===农历：'+lunarYear+'年'+lunarMonth+'月'+lunarDay);
+            getObj('showSolar').innerHTML = solarYear + '年' + solarMonth + '月' + solarDay + '日';
+            getObj('showLunar').innerHTML = calendar.toChinaFormat({lunarYear:lunarYear,lunarMonth:parseInt(lunarMonth),lunarDay:lunarDay});
+        };
+
+    </script>
+
+
+    <!-- 以下与demo代码无关 -->    
+
+    <p>公历转农历：</p>
+    <pre>
+     calendar.solar2lunarFormat({
+       solarYear:solarYear,//公历年
+       solarMonth:solarMonth,//公历月
+       solarDay:solarDay//公历天
+     });
+    </pre>
+    <p>农历转公历：</p>
+    <pre>
+     calendar.lunar2solarFormat({
+       lunarYear:lunarYear,//农历年
+       lunarMonth:lunarMonth,//农历月
+       lunarDay:lunarDay//农历天
+     });
+    </pre>
+    <p>获取年数据：</p>
+    <pre>
+     calendar.listYear({
+         isLunar:isLunar,//是否农历
+         nowYear:nowYear//当前年份
+     });
+    </pre>
+    <p>根据年，获取月数据：</p>
+    <pre>
+     calendar.listMonth({
+         isLunar:isLunar,//是否农历
+         year:year, //选中年份
+         nowYear:nowYear,//当前年份
+         nowMonth:nowMonth,//当前月份
+     });
+    </pre>
+    <p>根据年月，获取天数据：</p>
+    <pre>
+     calendar.listDay({
+         isLunar:isLunar,//是否农历
+         year:year, //选中年份
+         month:month,//选中月份
+         nowYear:nowYear,//当前年份
+         nowMonth:nowMonth,//当前月份
+         nowDay:nowDay//当前天
+     });
+    </pre>
+
+    <p>根据农历数值，换算成汉字：</p>
+    <pre>
+     calendar.toChinaFormat({
+       lunarYear:lunarYear,//农历年
+       lunarMonth:lunarMonth,//农历月
+       lunarDay:lunarDay//农历天
+     });
+    </pre>
+
+
+</body>
+</html>
